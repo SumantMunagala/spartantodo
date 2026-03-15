@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login", requestUrl.origin));
+    return NextResponse.redirect(new URL("/", requestUrl.origin));
   }
 
   const supabase = await createClient();
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   if (error) {
     console.error("Auth callback error:", error);
     return NextResponse.redirect(
-      new URL("/login?error=auth_failed", requestUrl.origin)
+      new URL("/?error=auth_failed", requestUrl.origin)
     );
   }
 
@@ -27,9 +27,9 @@ export async function GET(request: Request) {
   if (!email.endsWith(SJSU_EMAIL_DOMAIN)) {
     await supabase.auth.signOut();
     return NextResponse.redirect(
-      new URL("/login?error=non_sjsu", requestUrl.origin)
+      new URL("/?error=non_sjsu", requestUrl.origin)
     );
   }
 
-  return NextResponse.redirect(requestUrl.origin);
+  return NextResponse.redirect(new URL("/dashboard", requestUrl.origin));
 }
