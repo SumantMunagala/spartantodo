@@ -2,12 +2,21 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { startOfDay } from "date-fns";
 import type { AssignmentRow } from "@/lib/types/assignment";
+import {
+  getCourseOptions,
+  filterAssignmentsByCourse,
+} from "@/lib/course-filter";
 import { SyncButton } from "./_components/SyncButton";
 import { AddAssignmentForm } from "./_components/AddAssignmentForm";
 import { AssignmentCardWithActions } from "./_components/AssignmentCardWithActions";
+import { CourseFilter } from "./_components/CourseFilter";
 import { Calendar, AlertCircle, ListTodo, CheckCircle2 } from "lucide-react";
 
-export default async function DashboardPage() {
+type PageProps = {
+  searchParams: Promise<{ course?: string }>;
+};
+
+export default async function DashboardPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,7 +36,11 @@ export default async function DashboardPage() {
     console.error("Dashboard assignments load error:", error);
   }
 
-  const assignments = (rows ?? []) as AssignmentRow[];
+  const allAssignments = (rows ?? []) as AssignmentRow[];
+  const params = await searchParams;
+  const courseParam = params.course ?? "";
+  const assignments = filterAssignmentsByCourse(allAssignments, courseParam);
+  const courseOptions = getCourseOptions(allAssignments);
   const todayStart = startOfDay(new Date());
 
   const incomplete = assignments.filter((a) => !a.completed_at);
@@ -62,6 +75,11 @@ export default async function DashboardPage() {
           <div className="min-w-0 flex-1">
             <AddAssignmentForm />
           </div>
+          <CourseFilter
+            options={courseOptions}
+            selectedValue={courseParam}
+            basePath="/dashboard"
+          />
           <SyncButton />
         </div>
 
@@ -71,11 +89,14 @@ export default async function DashboardPage() {
               <ListTodo className="h-7 w-7 text-muted-foreground" />
             </div>
             <h2 className="text-lg font-semibold text-foreground">
-              No assignments yet
+              {courseParam && allAssignments.length > 0
+                ? "No assignments for this course"
+                : "No assignments yet"}
             </h2>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Connect Canvas or Gradescope in Settings, then click Sync to pull in
-              your assignments.
+              {courseParam && allAssignments.length > 0
+                ? "Try another course or clear the filter."
+                : "Connect Canvas or Gradescope in Settings, then click Sync to pull in your assignments."}
             </p>
           </div>
         )}
